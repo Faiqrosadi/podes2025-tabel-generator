@@ -11,7 +11,8 @@ oleh pipeline fill_* (yang membaca data dari .sav).
 
 Pakai:
   python3 generate.py <sav> [master_template_dir] [output_template_dir]
-Default master = 'template tabel/', output = 'workspace/template_gen/'.
+Default master = 'template master/', output = 'workspace/template_gen/'.
+Baris desa disesuaikan (sisip/hapus) merge-aware, jadi jumlah desa berapa pun aman.
 """
 import os, re, sys, glob, copy, shutil
 import pyreadstat, openpyxl
@@ -47,23 +48,6 @@ def copy_row(ws, src, dst):
         if not isinstance(d, MergedCell) and s.has_style:
             d._style = copy.copy(s._style)
 
-def adjust_band(ws, band, target, name_merges):
-    """Ubah jumlah baris band jadi `target` (delete/insert), jaga style+merge."""
-    start, end = band
-    cur = end - start + 1
-    if cur == target:
-        return
-    if cur > target:
-        ws.delete_rows(start + target, cur - target)
-    else:
-        add = target - cur
-        ws.insert_rows(end + 1, add)
-        for i in range(add):
-            nr = end + 1 + i
-            copy_row(ws, start, nr)
-            for (c1, c2) in name_merges:
-                try: ws.merge_cells(start_row=nr, start_column=c1, end_row=nr, end_column=c2)
-                except Exception: pass
 
 def marker_rows(ws):
     return [r for r in range(1, ws.max_row + 1)
@@ -120,16 +104,44 @@ def gen_kecamatan(master_file, out_file, desa_list, kab_to, kec_to):
     for ws in wb.worksheets:
         bands = find_bands(ws)
         if bands:
-            # deteksi merge nama desa dari baris desa pertama
             nmerges = row_merges(ws, bands[0][0])
-            for band in reversed(bands):          # bawah->atas agar indeks stabil
-                adjust_band(ws, band, N, nmerges)
-            for band in find_bands(ws):           # tulis kode+nama desa
+            last_col = ws.max_column
+            # FASE 1: surgery (delete/insert) — catat posisi awal tiap blok setelah geser
+            starts, offset = [], 0
+            for bs, be in bands:
+                s = bs + offset
+                cur = be - bs + 1
+                if cur > N:
+                    ws.delete_rows(s + N, cur - N)
+                elif cur < N:
+                    ws.insert_rows(s + cur, N - cur)
+                    for i in range(N - cur):
+                        copy_row(ws, s, s + cur + i)
+                starts.append(s)
+                offset += (N - cur)
+            # FASE 2: lepas merge yg menutupi baris desa (artefak surgery); simpan bagian header
+            desa_rows = {r for s in starts for r in range(s, s + N)}
+            for m in list(ws.merged_cells.ranges):
+                if any(m.min_row <= r <= m.max_row for r in desa_rows):
+                    top, mc, xc = m.min_row, m.min_col, m.max_col
+                    first = min(r for r in desa_rows if m.min_row <= r <= m.max_row)
+                    try: ws.unmerge_cells(str(m))
+                    except Exception: continue
+                    if top < first:          # sisakan bagian header di atas baris desa
+                        try: ws.merge_cells(start_row=top, start_column=mc, end_row=first-1, end_column=xc)
+                        except Exception: pass
+            # FASE 3: tulis kode+nama desa
+            for s in starts:
                 for i in range(N):
-                    r = band[0] + i
-                    kode, nama = desa_list[i]
-                    if not isinstance(ws.cell(r, 1), MergedCell): ws.cell(r, 1).value = kode
-                    if not isinstance(ws.cell(r, 2), MergedCell): ws.cell(r, 2).value = nama
+                    r = s + i; kode, nama = desa_list[i]
+                    ws.cell(r, 1).value = kode
+                    ws.cell(r, 2).value = nama
+            # FASE 4: pasang ulang merge nama desa (mis. B:C) tiap baris
+            for s in starts:
+                for i in range(N):
+                    for c1, c2 in nmerges:
+                        try: ws.merge_cells(start_row=s+i, start_column=c1, end_row=s+i, end_column=c2)
+                        except Exception: pass
         strip_values(ws)
         rename_titles(ws, kab_to, kec_to)
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
