@@ -75,3 +75,7 @@ python3 run_all.py
 - File `.sav` **tidak** disertakan di repo ini (data survei mentah) — bawa file Anda sendiri.
 - Aplikasi berjalan **lokal** (`localhost`). Tidak memerlukan koneksi/tunnel eksternal.
 - Untuk jumlah desa di luar set master bawaan, generator otomatis memakai master terdekat lalu menyesuaikan jumlah baris (sisip/hapus).
+
+## Kredit
+
+All credits belongs to **Faiqrosadi@bps.go.id**.

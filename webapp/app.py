@@ -406,7 +406,8 @@ BASE_HTML = """<!doctype html><html lang=id><head><meta charset=utf-8>
 {{admin|safe}}
 </div></header>
 <div class=wrap>{{body|safe}}
-<footer>Sumber: Pendataan Potensi Desa (PODES) 2025 · BPS · Tampilan mengikuti template tabel</footer>
+<footer>Sumber: Pendataan Potensi Desa (PODES) 2025 · BPS · Tampilan mengikuti template tabel<br>
+All credits belongs to <a href="mailto:Faiqrosadi@bps.go.id">Faiqrosadi@bps.go.id</a></footer>
 </div></body></html>"""
 
 UPLOAD = """
