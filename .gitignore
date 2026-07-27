@@ -1,0 +1,17 @@
+# Data survei mentah (jangan di-publish) — user membawa .sav sendiri
+data/*.sav
+
+# Output & workspace (dihasilkan saat runtime)
+hasil/
+workspace/
+template tabel (terisi)/
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store
