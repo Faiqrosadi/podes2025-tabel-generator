@@ -24,5 +24,5 @@ def _find_sav():
     return max(pick, key=os.path.getsize) if pick else ""
 
 SAV      = _find_sav()
-TEMPLATE = os.environ.get("PODES_TEMPLATE", os.path.join(BASE, "template tabel"))
+TEMPLATE = os.environ.get("PODES_TEMPLATE", os.path.join(BASE, "template master"))
 OUTPUT   = os.environ.get("PODES_OUTPUT",   os.path.join(BASE, "hasil"))

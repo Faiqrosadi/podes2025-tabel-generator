@@ -106,16 +106,15 @@ def strip_values(ws):
                 cell = ws.cell(r, c)
                 if not isinstance(cell, MergedCell): cell.value = None
 
-def rename_titles(ws, kab_from, kec_from, kab_to, kec_to):
+def rename_titles(ws, kab_to, kec_to):
+    """Ganti token {{KEC}}/{{KAB}} di master generik dengan nama sebenarnya."""
     for row in ws.iter_rows():
         for cell in row:
             v = cell.value
-            if isinstance(v, str) and v.strip() and not isinstance(cell, MergedCell):
-                nv = re.sub(kec_from, kec_to, v, flags=re.IGNORECASE)
-                nv = re.sub(kab_from, kab_to, nv, flags=re.IGNORECASE)
-                if nv != v: cell.value = nv
+            if isinstance(v, str) and "{{" in v and not isinstance(cell, MergedCell):
+                cell.value = v.replace("{{KEC}}", kec_to).replace("{{KAB}}", kab_to)
 
-def gen_kecamatan(master_file, out_file, desa_list, kab_from, kec_from, kab_to, kec_to):
+def gen_kecamatan(master_file, out_file, desa_list, kab_to, kec_to):
     wb = openpyxl.load_workbook(master_file)
     N = len(desa_list)
     for ws in wb.worksheets:
@@ -132,7 +131,7 @@ def gen_kecamatan(master_file, out_file, desa_list, kab_from, kec_from, kab_to, 
                     if not isinstance(ws.cell(r, 1), MergedCell): ws.cell(r, 1).value = kode
                     if not isinstance(ws.cell(r, 2), MergedCell): ws.cell(r, 2).value = nama
         strip_values(ws)
-        rename_titles(ws, kab_from, kec_from, kab_to, kec_to)
+        rename_titles(ws, kab_to, kec_to)
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
     wb.save(out_file)
 
@@ -161,7 +160,7 @@ def pick_master(masters, n):
 
 def main():
     sav = sys.argv[1] if len(sys.argv) > 1 else None
-    master_dir = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(__file__), "template tabel")
+    master_dir = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(__file__), "template master")
     out_dir = sys.argv[3] if len(sys.argv) > 3 else os.path.join(os.path.dirname(__file__), "workspace", "template_gen")
     if not sav or not os.path.exists(sav):
         sys.exit("Pakai: python3 generate.py <sav> [master_dir] [out_dir]")
@@ -170,8 +169,8 @@ def main():
     df["r104"] = df["r104"].astype(str).str.zfill(3)
     kab_to = titlecase(df["nama_kab"].iloc[0])
     masters = build_masters(master_dir)
-    # nama kab/kec master (asumsi 1 kabupaten di master, ambil dari data master? -> pakai konstanta)
-    kab_from = "Jepara"   # kabupaten master
+    if not masters:
+        sys.exit(f"! Master template tak ditemukan di {master_dir}")
     print(f"Master counts tersedia: {sorted(masters)}")
     print(f"Generate untuk: {kab_to}\n")
 
@@ -182,14 +181,13 @@ def main():
         desa_list = [(r.r104, titlecase(r.nama_desa)) for r in sub.itertuples()]
         N = len(desa_list)
         master_folder, how = pick_master(masters, N)
-        kec_from = titlecase(re.sub(r"^\d+\s*", "", os.path.basename(master_folder)))
         kec_to = titlecase(kec)
         out_folder = os.path.join(out_dir, f"{idx:03d} {kec_to}")
         for bab in range(1, 8):
             src = os.path.join(master_folder, f"Bab {bab}.xlsx")
             if os.path.exists(src):
                 gen_kecamatan(src, os.path.join(out_folder, f"Bab {bab}.xlsx"),
-                              desa_list, kab_from, kec_from, kab_to, kec_to)
+                              desa_list, kab_to, kec_to)
         print(f"  {idx:03d} {kec_to:16} {N:2} desa  (master {os.path.basename(master_folder)}, {how})")
     print(f"\nSelesai -> {out_dir}")
 

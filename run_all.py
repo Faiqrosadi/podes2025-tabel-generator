@@ -14,19 +14,29 @@ import config
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 STEPS = ["fill_bab7.py", "fill_bab6.py", "fill_bab4.py", "fill_extra.py"]
+GEN_TPL = os.path.join(BASE, "workspace", "template_gen")
 
 def main():
-    print(f"SAV      : {config.SAV}")
-    print(f"TEMPLATE : {config.TEMPLATE}")
-    print(f"OUTPUT   : {config.OUTPUT}\n")
+    print(f"SAV    : {config.SAV}")
+    print(f"MASTER : {config.TEMPLATE}")
+    print(f"OUTPUT : {config.OUTPUT}\n")
     if not config.SAV or not os.path.exists(config.SAV):
         sys.exit("! File .sav tidak ditemukan. Set PODES_SAV atau taruh di data/")
     if not os.path.isdir(config.TEMPLATE):
-        sys.exit("! Folder template tidak ditemukan. Set PODES_TEMPLATE.")
+        sys.exit("! Folder master tidak ditemukan. Set PODES_TEMPLATE.")
 
+    # 1) generate template per kecamatan dari .sav (master generik -> template_gen)
+    print("=== generate.py ===")
+    r = subprocess.run([sys.executable, os.path.join(BASE, "generate.py"),
+                        config.SAV, config.TEMPLATE, GEN_TPL])
+    if r.returncode != 0: sys.exit("! Gagal generate")
+    print()
+    # 2) isi tabel dari .sav (pakai template_gen)
+    env = os.environ.copy()
+    env.update(PODES_SAV=config.SAV, PODES_TEMPLATE=GEN_TPL, PODES_OUTPUT=config.OUTPUT)
     for s in STEPS:
         print(f"=== {s} ===")
-        r = subprocess.run([sys.executable, os.path.join(BASE, s)])
+        r = subprocess.run([sys.executable, os.path.join(BASE, s)], env=env)
         if r.returncode != 0:
             sys.exit(f"! Gagal di {s}")
         print()

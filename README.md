@@ -60,8 +60,9 @@ python3 run_all.py
 | `fill_bab7.py`, `fill_bab6.py`, `fill_bab4.py` | Mengisi tabel spesifik Bab 7/6/4 |
 | `fill_extra.py` | Mengisi Bab 1/2/3/5, menghitung rumus, mengisi `–` untuk sel tanpa sumber data |
 | `run_all.py` | Menjalankan seluruh pipeline (CLI) |
-| `config.py` | Konfigurasi path (`.sav`, template, output) |
-| `template tabel/` | Template master (struktur tabel BPS) |
+| `config.py` | Konfigurasi path (`.sav`, master, output) |
+| `template master/` | Template master **generik** (struktur tabel BPS; nama kab/kec = token `{{KAB}}`/`{{KEC}}`, tanpa data) — 1 folder per jumlah desa |
+| `clean_master.py` | Membuat `template master/` generik dari template berdata (menghapus data & menokenkan nama) |
 | `MAPPING.md` | Pemetaan tabel → variabel `.sav` |
 
 ## Cara kerja pengisian

@@ -15,3 +15,6 @@ venv/
 
 # OS
 .DS_Store
+
+# Template berdata (Jepara) — sumber untuk clean_master.py, tidak di-publish
+template tabel/
